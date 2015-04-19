@@ -11,6 +11,8 @@ import requests
 import time
 import types
 import ast
+from httplib import BadStatusLine
+from time import sleep
 
 try:
     # Prefer lxml, if installed.
@@ -299,8 +301,23 @@ class Solr(object):
             if bytes_body is not None:
                 bytes_body = force_bytes(body)
 
-            resp = requests_method(url, data=bytes_body, headers=headers, files=files,
-                                   timeout=self.timeout)
+            # Retry up to 3 times if request fails with BadStatusLine exception
+            tries = 0
+            while(tries != 3):
+                try:
+                    resp = requests_method(
+                        url, data=bytes_body, headers=headers, files=files,
+                        timeout=self.timeout
+                    )
+                    tries = 3
+                except BadStatusLine as err:
+                    tries += 1
+                    if tries == 3:
+                        raise
+                    sleep(2)
+                    error_message = "BadStatusLine response from server '%s'. Executing retry number '%s' out of 3, after sleeping for 2 seconds."
+                    self.log.error(error_message, url, tries, exc_info=True)
+
         except requests.exceptions.Timeout as err:
             error_message = "Connection to server '%s' timed out: %s"
             self.log.error(error_message, url, err, exc_info=True)
