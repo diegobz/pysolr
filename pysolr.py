@@ -314,7 +314,7 @@ class Solr(object):
                     tries += 1
                     if tries == 3:
                         raise
-                    sleep(2)
+                    sleep(30)
                     error_message = "BadStatusLine response from server '%s'. Executing retry number '%s' out of 3, after sleeping for 2 seconds."
                     self.log.error(error_message, url, tries, exc_info=True)
 
